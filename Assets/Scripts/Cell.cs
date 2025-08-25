@@ -1,11 +1,10 @@
-using System.Drawing;
 using UnityEngine;
-using UnityEngine.U2D;
+using UnityEngine.U2D;  // For SpriteAtlas
 using UnityEngine.UI;
 
 public class Cell : MonoBehaviour
 {
-    [SerializeField] Grid grid;
+    [SerializeField] Board board;
     [SerializeField] SpriteAtlas atlas;
     [SerializeField] int cellPos;
 
@@ -18,18 +17,18 @@ public class Cell : MonoBehaviour
     {
 
         //Debug.Log("CellPressed() at " + cellPos + " by " + grid.currentPlayer);
-        if (grid.IsFree(cellPos))
+        if (!board.gameOver && board.IsFree(cellPos))
         {
             Sprite sprite;
 
-            if (grid.currentPlayer == Grid.Player.x)
+            if (board.currentPlayer == Board.Player.X)
             {
-                grid.SetX(cellPos);
+                board.SetX(cellPos);
                 sprite = atlas.GetSprite("x-260_0");
             }
             else
             {
-                grid.SetO(cellPos);
+                board.SetO(cellPos);
                 sprite = atlas.GetSprite("o-260_0");
             }
 
@@ -42,16 +41,29 @@ public class Cell : MonoBehaviour
                 GetComponent<Image>().sprite = sprite;
             }
 
-            grid.prevPlayer = grid.currentPlayer;
-            // Swap player
-            if (grid.currentPlayer == Grid.Player.x)
+            if (board.CheckWin(board.currentPlayer))
             {
-                grid.currentPlayer = Grid.Player.o;
+                Debug.Log("Player \"" + board.currentPlayer + "\" Won!");
+                board.gameOver = true;
             }
             else
             {
-                grid.currentPlayer = Grid.Player.x;
+                // Swap players
+                if (board.currentPlayer == Board.Player.X)
+                {
+                    board.currentPlayer = Board.Player.O;
+                }
+                else
+                {
+                    board.currentPlayer = Board.Player.X;
+                }
             }
         }
+    }
+    
+    public void ResetCell()
+    {
+        GetComponent<Image>().sprite = atlas.GetSprite("empty-blue-260_0");
+        GetComponent<Image>().color = new Color(1.0f, 1.0f, 1.0f, 1.0f);
     }
 }
