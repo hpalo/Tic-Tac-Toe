@@ -2104,6 +2104,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c890a684ed4df54d9953c4fca8aa8d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  intBoard: 000000000000000000000000000000000000000000000000000000000000000000000000
   cellBoard:
   - {fileID: 205839183}
   - {fileID: 267625924}
@@ -2115,6 +2116,7 @@ MonoBehaviour:
   - {fileID: 920471007}
   - {fileID: 561472706}
   winColor: {r: 1, g: 1, b: 0.2, a: 1}
+  atlas2: {fileID: 100100200, guid: 5024934100a77e841a1e1deb28d0e938, type: 3}
   currentPlayer: 1
   gameOver: 0
 --- !u!1 &1921033208

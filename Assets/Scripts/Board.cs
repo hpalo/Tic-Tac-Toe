@@ -1,13 +1,15 @@
-using Unity.VisualScripting;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.U2D;
 using UnityEngine.UI;
 
 public class Board : MonoBehaviour
 {
-    int[] intBoard = new int[9] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    public int[] intBoard = new int[9] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     [SerializeField] Cell[] cellBoard = new Cell[9];
     [SerializeField] Color winColor = new Color(1.0f, 1.0f, 0.2f);
-    
+    [SerializeField] SpriteAtlas atlas2;
+
     public enum Player
     {
         O,
@@ -17,11 +19,59 @@ public class Board : MonoBehaviour
     public Player currentPlayer = Player.X;
 
     public bool gameOver = false;
+    public bool isHumanTurn = true;
 
     int GetState(int row, int col)
     {
         return intBoard[row * 3 + col];
     }
+
+    List<int> GetAvailableMovesForAI()
+    {
+        List<int> AImoves = new List<int> ();
+        for (int i = 0; i < cellBoard.Length; i++)
+        {
+            if (intBoard[i] == 0)
+                AImoves.Add(i);
+        }
+        return AImoves;
+    }
+
+    public void CellClicked(int cellPos, GameObject cellGO)
+    {
+        if (isHumanTurn && !gameOver && IsFree(cellPos))
+        {
+            Sprite sprite;
+
+            SetId(cellPos, 2);
+            sprite = atlas2.GetSprite("x-260_0");
+
+            if (sprite == null)
+            {
+                Debug.Log("sprite is null");
+            }
+            else
+            {
+                cellGO.GetComponent<Image>().sprite = sprite;
+            }
+
+            if (CheckWin(Player.X))
+            {
+                Debug.Log("Player \"" + Player.X + "\" won!");
+                gameOver = true;
+            }
+            else if (IsFull(intBoard))
+            {
+                Debug.Log("Draw.");
+                gameOver = true;
+                return;
+            }
+
+            isHumanTurn = false;
+            AITurn();
+        }
+    }
+
 
     public bool CheckWin(Player curPlayer)
     {
@@ -54,7 +104,7 @@ public class Board : MonoBehaviour
 
             return true;
         }
-        // Check another diagonally
+        // Check another diagonal
         if (GetState(0, 2) == (int)(curPlayer + 1) && GetState(1, 1) == (int)(curPlayer + 1) && GetState(2, 0) == (int)(curPlayer + 1))
         {
             cellBoard[0 * 3 + 2].GetComponent<Image>().color = winColor;
@@ -72,29 +122,17 @@ public class Board : MonoBehaviour
         bool result = (intBoard[pos] == 0);
         if (!result)
         {
-            //Debug.Log("pos " + pos + " is not free. There is currently a mark by id " + grid[pos] + ".");
             Debug.Log("pos " + pos + " is not empty. There is currently a mark from the player \"" + getPlayer(intBoard[pos]) + "\".");
         }
 
         return result;
     }
 
-    public void SetX(int pos)
+    public void SetId(int pos, int id)
     {
         if (intBoard[pos] == 0)
         {
-            intBoard[pos] = 2;
-        }
-        else
-        {
-            Debug.Log("The position is reserved.");
-        }
-    }
-    public void SetO(int pos)
-    {
-        if (intBoard[pos] == 0)
-        {
-            intBoard[pos] = 1;
+            intBoard[pos] = id;
         }
         else
         {
@@ -113,6 +151,7 @@ public class Board : MonoBehaviour
     {
         gameOver = false;
         currentPlayer = Player.X;
+        isHumanTurn = true;
 
         for (int i = 0; i < intBoard.Length; i++)
         {
@@ -122,6 +161,44 @@ public class Board : MonoBehaviour
         foreach (Cell cell in cellBoard)
         {
             cell.ResetCell();
+        }
+    }
+
+    public bool IsFull(int[] state)
+    {
+        for (int i = 0; i < 9; i++)
+            if (state[i] == 0) return false;
+        return true;
+    }
+
+    void AITurn()
+    {
+        if (gameOver)
+            return;
+
+        if (IsFull(intBoard))
+        {
+            Debug.Log("Draw.");
+            return;
+        }
+
+        List<int> moves = GetAvailableMovesForAI();
+
+        if (moves.Count > 0)
+        {
+            int randomCellPos = Random.Range(0, moves.Count);
+            SetId(moves[randomCellPos], 1);
+            Sprite sprite = atlas2.GetSprite("o-260_0");
+            cellBoard[moves[randomCellPos]].GetComponent<Image>().sprite = sprite;
+            
+            if (CheckWin(Player.O))
+            {
+                Debug.Log("Player \"O\" won!");
+                gameOver = true;
+            }
+
+            isHumanTurn = true;
+            return;
         }
     }
 }
