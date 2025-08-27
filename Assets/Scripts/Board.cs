@@ -16,10 +16,9 @@ public class Board : MonoBehaviour
         X
     }
 
-    public Player currentPlayer = Player.X;
-
     public bool gameOver = false;
     public bool isHumanTurn = true;
+    public Options options;
 
     int GetState(int row, int col)
     {
@@ -39,7 +38,7 @@ public class Board : MonoBehaviour
 
     public void CellClicked(int cellPos, GameObject cellGO)
     {
-        if (isHumanTurn && !gameOver && IsFree(cellPos))
+        if (isHumanTurn && !gameOver && IsEmpty(cellPos))
         {
             Sprite sprite;
 
@@ -55,7 +54,7 @@ public class Board : MonoBehaviour
                 cellGO.GetComponent<Image>().sprite = sprite;
             }
 
-            if (CheckWin(Player.X))
+            if (UpdateSpritesOnWin(Player.X))
             {
                 Debug.Log("Player \"" + Player.X + "\" won!");
                 gameOver = true;
@@ -68,12 +67,41 @@ public class Board : MonoBehaviour
             }
 
             isHumanTurn = false;
-            AITurn();
+            AITurn(options.currentAIPlayer);
         }
     }
 
 
     public bool CheckWin(Player curPlayer)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            // Check horizontally
+            if (GetState(i, 0) == (int)(curPlayer + 1) && GetState(i, 1) == (int)(curPlayer + 1) && GetState(i, 2) == (int)(curPlayer + 1))
+            {
+                 return true;
+            }
+            // Check vertically
+            if (GetState(0, i) == (int)(curPlayer + 1) && GetState(1, i) == (int)(curPlayer + 1) && GetState(2, i) == (int)(curPlayer + 1))
+            {
+                return true;
+            }
+        }
+        // Check diagonally
+        if (GetState(0, 0) == (int)(curPlayer + 1) && GetState(1, 1) == (int)(curPlayer + 1) && GetState(2, 2) == (int)(curPlayer + 1))
+        {
+             return true;
+        }
+        // Another diagonal
+        if (GetState(0, 2) == (int)(curPlayer + 1) && GetState(1, 1) == (int)(curPlayer + 1) && GetState(2, 0) == (int)(curPlayer + 1))
+        {
+             return true;
+        }
+
+        return false;
+    }
+
+    public bool UpdateSpritesOnWin(Player curPlayer)
     {
         for (int i = 0; i < 3; i++)
         {
@@ -117,12 +145,12 @@ public class Board : MonoBehaviour
         return false;
     }
 
-    public bool IsFree(int pos)
+    public bool IsEmpty(int pos)
     {
         bool result = (intBoard[pos] == 0);
         if (!result)
         {
-            Debug.Log("pos " + pos + " is not empty. There is currently a mark from the player \"" + getPlayer(intBoard[pos]) + "\".");
+            Debug.Log("Pos " + pos + " is not empty. There is a mark from player \"" + getPlayer(intBoard[pos]) + "\".");
         }
 
         return result;
@@ -150,7 +178,6 @@ public class Board : MonoBehaviour
     public void Reset()
     {
         gameOver = false;
-        currentPlayer = Player.X;
         isHumanTurn = true;
 
         for (int i = 0; i < intBoard.Length; i++)
@@ -171,7 +198,15 @@ public class Board : MonoBehaviour
         return true;
     }
 
-    void AITurn()
+    void AITurn(Options.AIPlayer aiPlayer)
+    {
+        if (aiPlayer == Options.AIPlayer.easy)
+            AITurnEasy();
+        else
+            AITurnHard();
+    }
+
+    void AITurnEasy()
     {
         if (gameOver)
             return;
@@ -190,8 +225,8 @@ public class Board : MonoBehaviour
             SetId(moves[randomCellPos], 1);
             Sprite sprite = atlas2.GetSprite("o-260_0");
             cellBoard[moves[randomCellPos]].GetComponent<Image>().sprite = sprite;
-            
-            if (CheckWin(Player.O))
+
+            if (UpdateSpritesOnWin(Player.O))
             {
                 Debug.Log("Player \"O\" won!");
                 gameOver = true;
@@ -200,5 +235,76 @@ public class Board : MonoBehaviour
             isHumanTurn = true;
             return;
         }
+    }
+
+    void AITurnHard()
+    {
+        if (gameOver)
+            return;
+        if (IsFull(intBoard))
+        {
+            Debug.Log("Draw.");
+            return;
+        }
+
+        int bestScore = int.MinValue;
+
+        int bestMove = -1;
+
+        for (int i = 0; i < 9; i++)
+        {
+            if (intBoard[i] == 0)
+            {
+                intBoard[i] = 1;
+                int score = MinMax(intBoard, 0, false);
+                intBoard[i] = 0;
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestMove = i;
+                }
+            }
+        }
+
+        intBoard[bestMove] = 1;
+        Sprite sprite = atlas2.GetSprite("o-260_0");
+        cellBoard[bestMove].GetComponent<Image>().sprite = sprite;
+
+        if (UpdateSpritesOnWin(Player.O))
+        {
+            Debug.Log("Player \"O\" won!");
+        }
+        else if (IsFull(intBoard))
+        {
+            Debug.Log("Draw.");
+        }
+
+        isHumanTurn = true;
+    }
+
+    int MinMax(int[] state, int depth, bool isMaximizing)
+    {
+        if (CheckWin(Player.O)) return 10 - depth;
+        if (CheckWin(Player.X)) return depth - 10;
+        if (IsFull(intBoard)) return 0;
+
+        int bestScore = isMaximizing ? int.MinValue : int.MaxValue;
+
+        for (int i = 0; i < 9; i++)
+        {
+            if (intBoard[i] == 0)
+            {
+                intBoard[i] = isMaximizing ? 1 : 2;
+                int score = MinMax(intBoard, depth + 1, !isMaximizing);
+                intBoard[i] = 0;
+
+                bestScore = isMaximizing
+                    ? Mathf.Max(score, bestScore)
+                    : Mathf.Min(score, bestScore);
+            }
+        }
+
+        return bestScore;
     }
 }
